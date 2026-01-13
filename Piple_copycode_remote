@@ -1,6 +1,9 @@
 pipeline
 {
 agent any
+
+triggers {
+  cron('H 2 * * *') // Runevery day at 2 AM
 environement {
 DEPLOY_USER="ec2-user"
 DEPLOY_PASSWORD=
