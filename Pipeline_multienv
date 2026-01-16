@@ -1,0 +1,73 @@
+pipeline {
+    agent any
+    
+    Parameters {
+        choice(name: 'ENVIROMENT', choices: ['DEV','PROD'], description: 'Select the environment to deploy')
+    }
+    environment {
+        REPO_URL = 'https://github.com/sadhix12/ecom-web-shk.git'
+    }
+
+    stages {
+    stage('Checkout code') {
+        steps {
+            git branch: 'main', url: "${REPO_URL}"
+        }
+    }
+    stage('Build') {
+        steps {
+            echo "Building the application..."
+            sh 'echo Build commands go here'
+        }
+    }
+    stage('Deploy to Dev') {
+        when {
+            expression {params.ENVIRONMENT == 'DEV'}
+        }
+        steps {
+            echo "Deploying to Development Environment..."
+            sh 'cp dev/de.html/tmp/dev_de.html'
+            script {
+                def sshUser = "ubuntu"
+                def ip = "0.0.0.0"
+                def credentialId = "dev-server-ssh" 
+                def file = "tmp/dev_de.html"
+                def targetPath = "/var/www/html/de.html"
+
+                withCredentials([sshUserPrivateKey(credentialsId: credentialId, keyFileVariable: 'SSH_KEY')]) {
+                    sh """
+                    echo "copying the file to ${ip}"
+                        scp -o StrictHostKeyChecking=no -i \$SSH_KEY ${file} ${sshUser}@${ip}:${targetPath}
+                        echo "running SSH commands on ${ip}"
+                        ssh -o StrictHostKeyChecking=no -i \$SSH_KEY ${sshUser}@${ip} "ls -l ${targetPath}"
+                                           """
+                }
+            }
+        }
+    }
+    }
+}stage('Deploy to Prod') {
+        when {
+            expression {params.ENVIRONMENT == 'PROD'}
+        }
+        steps {
+            echo "Deploying to Production Environment..."
+            sh 'cp prod/de.html/tmp/prod_de.html'
+            script {
+                def sshUser = "ubuntu"
+                def ip = "0.0.0.0"  
+                def credentialId = "ssh-prod-key"
+                def file = "tmp/prod_de.html"
+                def targetPath = "/var/www/html/de.html"        
+
+                withCredentials([sshUserPrivateKey(credentialsId: credentialId, keyFileVariable: 'SSH_KEY')]) {
+                    sh """
+                    echo "copying the file to ${ip}"
+                        scp -o StrictHostKeyChecking=no -i \$SSH_KEY ${file} ${sshUser}@${ip}:${targetPath}
+                        echo "running SSH commands on ${ip}"
+                        ssh -o StrictHostKeyChecking=no -i \$SSH_KEY ${sshUser}@${ip} "ls -l ${targetPath}"
+                                           """
+                }
+            }
+        }
+}
